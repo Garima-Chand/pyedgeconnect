@@ -1050,3 +1050,63 @@ def get_appliance_dns_cache_config(
         path = f"/appliance/dnsCache/config/{ne_pk}?cached={cached}"
 
     return self._get(path)
+
+
+def get_ha_peer_meta(
+        self,
+        ne_pk: str = None
+) -> dict:
+    """Get the high-availability (HA) peer metadata.
+
+    Get the high-availability (HA) peer metadata for one or more Network Elements (NE).
+
+    For Orchestrator versions >= 9.3, when the ne_pk value is provided, this function
+    returns a dictionary containing metadata about an NE and its peer within the
+    high-availability group. If no, ne_pk value is provided, it will return all HA
+    peer data for all appliances. For Orchestrator versions <= 9.2, this function will
+    return all HA peer data for all appliances.
+
+    Example response format for a single ne_pk:
+    {
+        "0.NE": {
+            "nePk": "1.NE",  # Peer identifier
+            "group": "0"     # Group identifier for high availability
+        }
+    }
+
+    Example response format when no ne_pk is provided and multiple appliance data is returned:
+    {
+        "1.NE": {
+            "nePk": "0.NE",
+            "group": "0"
+        },
+        "0.NE": {
+            "nePk": "1.NE",
+            "group": "0"
+        }
+    }
+
+    This function returns a dictionary where each key represents a Network Element
+    Primary Key (`nePk`), and the value contains metadata about its high-availability
+    peer and group association.
+
+    :param ne_pk: Network Element Primary Key (nePk) of the current NE,
+        e.g. ``0.NE`` Only for Orchestrator versions >= 9.3.
+    :type ne_pk: str
+    :return: A dictionary containing HA metadata for one or more NEs.
+        * keyword **<ne_pk>** (`str`): The current NE key (e.g., `'0.NE'` or `'1.NE'`).
+        * keyword **nePk** (`str`): The primary key (`nePk`) of the peer network element.
+        * keyword **group** (`str`): The group ID this NE belongs to (e.g., `'0'`).
+    """
+    if self.orch_version >= 9.3:
+        if ne_pk is None:
+            path = f"/appliance/haPeerMeta"
+        else:
+            path = f"/appliance/haPeerMeta?nePk={ne_pk}"
+    else:
+        if ne_pk is not None:
+            raise ValueError("The parameter 'ne_pk' is not supported for Orchestrator versions <= 9.2")
+        path = f"/appliance/haPeerMeta"
+
+    return self._get(path)
+
