@@ -1,0 +1,212 @@
+# For device: {{ device_name }}
+
+
+deploymentInfo:
+  deploymentMode: {{ 'inline-router' if deployment_info['sysConfig']['mode'] else value}}
+  {% if server_per_segment_preconfig_yaml_support %}
+  serverPerSegment: {{ deployment_info['sysConfig']['serverPerSegment'] | lower }}
+  {% else %}
+  # Preconfig YAML for this Orchestrator version does not yet support serverPerSegment flag to set Distinct DHCP relay server per segment
+  {% endif %}
+  totalOutboundBandwidth: {{ deployment_info['sysConfig']['maxBW'] }}
+  totalInboundBandwidth: {{ deployment_info['sysConfig']['maxInBW'] }}
+  shapeInboundTraffic: {{ deployment_info['sysConfig']['maxInBWEnabled'] | lower }}
+  ipsecUdpPort: {{ extra_info['overlaySettings']['ipsecUdpPort'] }}
+  passThroughShapedTraffic:
+    outboundMaxBandwidth: {{ appliance_tunnel_info["max_bw"] }}
+
+  deploymentInterfaces:
+    {% for entry in deployment_info['modeIfs'] -%}
+        {% for sub_entry in entry['applianceIPs'] -%}
+            {% if '169.254.' not in sub_entry['ip'] %}
+                {% if sub_entry['vlan'] %}
+    - interfaceName: {{ entry['ifName'] }}.{{ sub_entry['vlan'] }}
+                {% else %}
+    - interfaceName: {{ entry['ifName'] }}
+                {% endif %}
+                {% if sub_entry['lanSide'] == True %}
+                    {%  for label in deployment_info['sysConfig']['ifLabels']['lan'] %}
+                        {% if sub_entry['label'] == label['id'] %}
+      interfaceLabel: {{ label['name'] }}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                {% if sub_entry['wanSide'] == True %}
+                    {%  for label in deployment_info['sysConfig']['ifLabels']['wan'] %}
+                        {% if sub_entry['label'] == label['id'] %}
+      interfaceLabel: {{ label['name'] }}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                {% if sub_entry['lanSide'] == True %}
+      interfaceType: lan
+                {% else %}
+      interfaceType: wan
+                {% endif %}
+      interfaceComment: {{ sub_entry['comment'] | default('') }}
+{#TODO: addressingMode#}
+                {% if sub_entry['ip'] == '0.0.0.0' or sub_entry['dhcp'] == true %}
+      ipAddressMask:
+                {% else %}
+      ipAddressMask: {{ sub_entry['ip'] }}/{{ sub_entry['mask'] }}
+                {% endif %}
+                {% if '0.0.0.0' not in sub_entry['wanNexthop'] and sub_entry['dhcp'] == false %}
+      nextHop: {{ sub_entry['wanNexthop'] | default('') }}
+                {% else %}
+      nextHop:
+                {% endif %}
+{# Inbound and OutboundMaxBandwidth - required for WAN interfaces only #}
+                {% if sub_entry['wanSide'] == True %}
+      inboundMaxBandwidth: {{ sub_entry['maxBW']['inbound'] }}
+      outboundMaxBandwidth: {{ sub_entry['maxBW']['inbound'] }}
+{# firewallMode: harden value reference: #}
+{# 0->All, 1->Harden, 2->Stateful, 3->Stateful+SNAT #}
+                    {% if sub_entry['harden'] == 0 %}
+      firewallMode: All
+                    {% elif sub_entry['harden'] == 1 %}
+      firewallMode: harden
+                    {% elif sub_entry['harden'] == 2 %}
+      firewallMode: stateful
+                    {% elif sub_entry['harden'] == 3 %}
+      firewallMode: statefulSNAT
+                    {% endif %}
+      behindNat: {{ sub_entry['behindNAT'] }}
+                {% endif %}
+{#Interface Segment Definition #}
+                {% for vrf in deployment_info['sysConfig']['vrfs'] %}
+{#                    TODO: should this be == below  #}
+                    {% if sub_entry['vrf'] | string in vrf['id'] %}
+      segment: {{ vrf['name'] }}
+                {% endif %}
+                {% endfor %}
+{# Interface Zone Definition #}
+                {%  for zone in deployment_info['sysConfig']['zones'] %}
+                    {% if sub_entry['zone'] | string == zone['id'] %}
+      zone: {{ zone['name'] }}
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+
+{# Changed approach here. Instead of navigating data structure in Jinja,         #}
+{# I'm doing it in Python and presenting simple variables to the Jinja template. #}
+{% if deployment_info['sysConfig']['haIf'] != '' %}
+  haConfig:
+    haPeerSerial:
+    haPeerHostname: {{ ha_config['haPeerHostname'] }}
+    haIpPool: {{ ha_config['haIpPool'] }}
+    haSubnetMask: {{ ha_config['haSubnetMask'] }}
+    haVlanStart: {{ ha_config['haVlanStart'] }}
+    haInterface: {{ ha_config['haInterface'] }}
+    # --- If the HA interface Vlans (sub-interfaces) are not contiguous, this change could impact production if      ---
+    # --- applied to an existing appliance running in EdgeHA. The other appliance's deploymentInfo section preconfig ---
+    # --- needs to be configured as well to get the same HA interface contiguous Vlan (sub-interface) configuration. ---
+    haInterfaceOrder: {{ ha_config['haInterfaceOrder'] }}
+    haPeerInterfaceInfo:
+    {% for entry in ha_config['haPeerInterfaceInfo'] %}
+        {% if entry['name'] != 'Unknown' %}
+    - interfaceLabel: {{ entry['name'] }}
+      outbound: {{ entry['outbound'] }}
+      inbound: {{ entry['inbound'] }}
+      segment: Default
+      zone: {{ entry['zone'] }}
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
+{% if is_dhcp_configured %}
+  dhcpInfo:
+  {% for entry in dhcp_info %}
+  {% if entry['dhcpType'] == 'server' %}
+    - dhcpInterfaceName: {{ entry['dhcpInterfaceName'] }}
+      dhcpType: {{ entry['dhcpType'] }}
+      dhcpAddressMask: {{ entry['dhcpAddressMask'] }}
+      startIpAddress: {{ entry['startIpAddress'] }}
+      endIpAddress: {{ entry['endIpAddress'] }}
+      iPRanges:
+      {% for range in entry['ipRanges'] %}
+        - startIp: {{ range['start_ip'] }}
+          endIp: {{ range['end_ip'] }}
+      {% endfor %}
+      gatewayIpAddress: {{ entry['gatewayIpAddress'] }}
+      dnsServers:
+      {% for dns_server in entry['dnsServers'] %}
+        - {{ dns_server }}
+      {% endfor %}
+      ntpServers:
+      {% for ntp_server in entry['ntpServers'] %}
+        - {{ ntp_server }}
+      {% endfor %}
+      netbiosNameServers:
+      {% for netbios_server in entry['netbiosNameServers'] %}
+        - {{ netbios_server }}
+      {% endfor %}
+      netbiosNodeType: {{ entry['netbiosNodeType'] }}
+      # As of Orchestrator version 9.3.5, the following two values are given in seconds instead of minutes
+      maximumLease: {{ entry['maximumLease'] }}
+      defaultLease: {{ entry['defaultLease'] }}
+      options:
+      {% for option in entry['options'] %}
+        - option: {{ option['option'] }}
+          value: {{ option['value'] }}
+      {% endfor %}
+      staticIpAssignments:
+      {% for static_ip in entry['staticIpAssignments'] %}
+        - hostname: {{ static_ip['hostname'] }}
+          macAddress: {{ static_ip['mac_address'] }}
+          ipAddress: {{ static_ip['ip_address'] }}
+      {% endfor %}
+      {% if entry['failover'] %}
+{#      There is only one DHCP HA Failover configuration per physical interface.#}
+{#      If multiple sub-interfaces exist, there is only one DHCP HA Failover config that uses the#}
+{#      ip addresses of one of the sub-interfaces.#}
+{#      In the python script, if there are multiple sub-interfaces, each one will be configured with exact same #}
+{#      dhcpHA config. Even though there is only one dhcpHA config per physical interface, in order to enable it#}
+{#      on a sub-interface, it must be configured in its entirety in the preconfig YAML file per sub-interface. #}
+
+      # Only one set of configuration data for dhcpHA per physical interface. If DHCP Failover is enabled on multiple
+      # sub-interfaces, each sub-interface's DHCP Failover data, although the same, must be configured under each one
+      # in the preconfig YAML file.
+      dhcpHA:
+        dhcpFailoverRole: {{ entry['dhcpFailoverRole'] }}
+        ipAddress: {{ entry['dhcpFailoverMyIp'] }}
+        ipAddressPort: {{ entry['dhcpFailoverMyPort'] }}
+        peerIpAddress: {{ entry['dhcpFailoverPeerIp'] }}
+        peerIpAddressPort: {{ entry['dhcpFailoverPeerPort'] }}
+        mclt: {{ entry['dhcpFailoverMCLT'] }}
+        split: {{ entry['dhcpFailoverSplit'] }}
+        maxResponseDelay: {{ entry['dhcpFailoverMaxRespDelay'] }}
+        maxUnackedUpdates: {{ entry['dhcpFailoverMaxUnackUpdates'] }}
+        loadBalanceMaxSeconds: {{ entry['dhcpFailoverLoadBalMax'] }}
+      {% endif %}
+  {% endif %}
+  {% if entry['dhcpType'] == 'relay' %}
+    - dhcpInterfaceName: {{ entry['dhcpInterfaceName'] }}
+      dhcpType: {{ entry['dhcpType'] }}
+      dhcpProxyServers:
+      {% for relay_server in entry['dhcpProxyServers'] %}
+        - {{ relay_server }}
+      {% endfor %}
+      enableOptions82: {{ entry['enableOptions82'] | lower }}
+      options82Policy: {{ entry['options82Policy'] }}
+      {% if entry['option82SuboptionSupport'] %}
+      {% for sub_option in entry['option82SubOptions'] %}
+      option82SubOptions{{ sub_option['option'][11:] }}: {{ 'true' if sub_option['value'] else 'false' }}
+      {% endfor %}
+      {% endif %}
+      {%  if entry['option82SubOptionsRequiredButNotSupportedOnECOS'] %}
+      ##################################################################################################################
+      # --- Note:                                                                                                  --- #
+      # --- This Orchestrator is running 9.5 or higher but the EdgeConnect appliance is running ECOS 9.4 or lower. --- #
+      # --- Orchestrator 9.5 requires at least one Option82 sub-option be set to TRUE in this preconfig YAML       --- #
+      # --- configuration for validation. For ECOS 9.4 and lower, Orchestrator will not push option82SubOptions,   --- #
+      # --- but it is still required in this preconfig YAML configuration in order to successfully validate the    --- #
+      # --- configuration.                                                                                         --- #
+      ##################################################################################################################
+      option82SubOptions1: true
+      {% endif %}
+  {% endif %}
+
+  {% endfor %}
+{% endif %}

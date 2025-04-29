@@ -62,6 +62,8 @@ logging/
 
 /examples/generate_preconfig/gen_preconfig_venv/
 /examples/generate_preconfig/JupyterLab_Notebook/preconfig_outputs/
+/examples/generate_preconfig_from_existing_appliance/preconfig_outputs
+!/examples/generate_preconfig_from_existing_appliance/preconfig_outputs/example_deployment_preconfig.yml
 
 #IDE
 .idea/
