@@ -349,7 +349,7 @@ def get_all_service_groups(self) -> list:
     :rtype: list
     """
 
-    return self._get("/ipObjects/addressGroup")
+    return self._get("/ipObjects/serviceGroup")
 
 
 def create_service_group(

@@ -668,6 +668,7 @@ class Orchestrator(HttpCommon):
         modify_appliance_stats_config,
         rediscover_denied_appliance,
         update_discovered_appliances,
+        get_ha_peer_meta,
     )
     from .orch._appliance_backup import (
         backup_appliance_config,

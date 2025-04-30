@@ -1,0 +1,224 @@
+deploymentInfo:
+  deploymentMode: inline-router
+  serverPerSegment: true
+  totalOutboundBandwidth: 600000
+  totalInboundBandwidth: 600000
+  shapeInboundTraffic: false
+  ipsecUdpPort: 12000
+  passThroughShapedTraffic:
+    outboundMaxBandwidth: 10000000
+
+  deploymentInterfaces:
+    - interfaceName: lan0.303
+      interfaceLabel: Data
+      interfaceType: lan
+      interfaceComment: lan interface
+      ipAddressMask: 172.23.2.2/24
+      nextHop:
+      segment: Default
+    - interfaceName: lan0.751
+      interfaceLabel: Voice
+      interfaceType: lan
+      interfaceComment:
+      ipAddressMask: 19.1.1.1/24
+      nextHop:
+      segment: Default
+    - interfaceName: lan0.780
+      interfaceLabel: Data
+      interfaceType: lan
+      interfaceComment:
+      ipAddressMask: 18.1.1.1/24
+      nextHop:
+      segment: Default
+    - interfaceName: lan1
+      interfaceType: lan
+      interfaceComment:
+      ipAddressMask: 21.1.1.1/24
+      nextHop:
+      segment: Default
+    - interfaceName: wan0.401
+      interfaceLabel: MPLS1
+      interfaceType: wan
+      interfaceComment: test321 test123
+      ipAddressMask: 12.184.33.14/30
+      nextHop: 12.184.33.13
+      inboundMaxBandwidth: 100000
+      outboundMaxBandwidth: 100000
+      firewallMode: All
+      behindNat: none
+      segment: Default
+
+  haConfig:
+    haPeerSerial:
+    haPeerHostname: FannettEC2
+    haIpPool: 169.254.1.0/24
+    haSubnetMask: 30
+    haVlanStart: 100
+    haInterface: wan1
+    # --- If the HA interface Vlans (sub-interfaces) are not contiguous, this change could impact production if      ---
+    # --- applied to an existing appliance running in EdgeHA. The other appliance's deploymentInfo section preconfig ---
+    # --- needs to be configured as well to get the same HA interface contiguous Vlan (sub-interface) configuration. ---
+    haInterfaceOrder: MPLS2,INET1,MPLS1
+    haPeerInterfaceInfo:
+    - interfaceLabel: MPLS2
+      outbound: 200000
+      inbound: 200000
+      segment: Default
+      zone:
+    - interfaceLabel: INET1
+      outbound: 300000
+      inbound: 300000
+      segment: Default
+      zone:
+
+  dhcpInfo:
+    - dhcpInterfaceName: lan0.303
+      dhcpType: server
+      dhcpAddressMask: 172.23.2.0/24
+      startIpAddress: 172.23.2.20
+      endIpAddress: 172.23.2.100
+      iPRanges:
+        - startIp: 172.23.2.110
+          endIp: 172.23.2.120
+        - startIp: 172.23.2.150
+          endIp: 172.23.2.175
+        - startIp: 172.23.2.200
+          endIp: 172.23.2.254
+      gatewayIpAddress: 172.23.2.1
+      dnsServers:
+        - 10.10.10.10
+        - 1.1.1.1
+      ntpServers:
+        - 10.10.10.10
+        - 7.7.7.7
+        - 4.4.4.4
+      netbiosNameServers:
+        - 10.10.10.10
+        - 2.2.2.2
+      netbiosNodeType: B
+      # As of Orchestrator version 9.3.5, the following two values are given in seconds instead of minutes
+      maximumLease: 86400
+      defaultLease: 86400
+      options:
+        - option: 15
+          value: acme.com
+        - option: 26
+          value: 1234
+      staticIpAssignments:
+        - hostname: host1
+          macAddress: 00:25:96:FF:FE:12
+          ipAddress: 172.23.2.12
+        - hostname: host2
+          macAddress: 00:25:96:FF:FE:13
+          ipAddress: 172.23.2.9
+        - hostname: host3
+          macAddress: 00:25:96:FF:FE:18
+          ipAddress: 172.23.2.18
+
+      # Only one set of configuration data for dhcpHA per physical interface. If DHCP Failover is enabled on multiple
+      # sub-interfaces, each sub-interface's DHCP Failover data, although the same, must be configured under each one
+      # in the preconfig YAML file.
+      dhcpHA:
+        dhcpFailoverRole: primary
+        ipAddress: 172.23.2.2
+        ipAddressPort: 647
+        peerIpAddress: 172.23.2.3
+        peerIpAddressPort: 647
+        mclt: 3600
+        split: 128
+        maxResponseDelay: 10
+        maxUnackedUpdates: 10
+        loadBalanceMaxSeconds: 5
+
+    - dhcpInterfaceName: lan0.751
+      dhcpType: relay
+      dhcpProxyServers:
+        - 1.1.1.1
+        - 2.2.2.2
+        - 3.3.3.3
+      enableOptions82: false
+      options82Policy: append
+      ##################################################################################################################
+      # --- Note:                                                                                                  --- #
+      # --- This Orchestrator is running 9.5 or higher but the EdgeConnect appliance is running ECOS 9.4 or lower. --- #
+      # --- Orchestrator 9.5 requires at least one Option82 sub-option be set to TRUE in this preconfig YAML       --- #
+      # --- configuration for validation. For ECOS 9.4 and lower, Orchestrator will not push option82SubOptions,   --- #
+      # --- but it is still required in this preconfig YAML configuration in order to successfully validate the    --- #
+      # --- configuration.                                                                                         --- #
+      ##################################################################################################################
+      option82SubOptions1: true
+
+    - dhcpInterfaceName: lan0.780
+      dhcpType: server
+      dhcpAddressMask: 18.1.1.0/24
+      startIpAddress: 18.1.1.100
+      endIpAddress: 18.1.1.105
+      iPRanges:
+        - startIp: 18.1.1.150
+          endIp: 18.1.1.188
+      gatewayIpAddress: 18.1.1.1
+      dnsServers:
+        - 1.1.1.1
+      ntpServers:
+        - 2.2.2.2
+      netbiosNameServers:
+      netbiosNodeType: M
+      # As of Orchestrator version 9.3.5, the following two values are given in seconds instead of minutes
+      maximumLease: 172800
+      defaultLease: 86400
+      options:
+        - option: 12
+          value: some_host_name
+        - option: 48
+          value: 99.99.99.99
+        - option: 58
+          value: 15666
+      staticIpAssignments:
+
+      # Only one set of configuration data for dhcpHA per physical interface. If DHCP Failover is enabled on multiple
+      # sub-interfaces, each sub-interface's DHCP Failover data, although the same, must be configured under each one
+      # in the preconfig YAML file.
+      dhcpHA:
+        dhcpFailoverRole: primary
+        ipAddress: 172.23.2.2
+        ipAddressPort: 647
+        peerIpAddress: 172.23.2.3
+        peerIpAddressPort: 647
+        mclt: 3600
+        split: 128
+        maxResponseDelay: 10
+        maxUnackedUpdates: 10
+        loadBalanceMaxSeconds: 5
+
+    - dhcpInterfaceName: lan1
+      dhcpType: server
+      dhcpAddressMask: 21.1.1.0/24
+      startIpAddress: 21.1.1.96
+      endIpAddress: 21.1.1.127
+      iPRanges:
+      gatewayIpAddress: 21.1.1.1
+      dnsServers:
+        - 10.10.10.10
+      ntpServers:
+      netbiosNameServers:
+      netbiosNodeType: B
+      # As of Orchestrator version 9.3.5, the following two values are given in seconds instead of minutes
+      maximumLease: 10000
+      defaultLease: 7200
+      options:
+      staticIpAssignments:
+
+      # Only one set of configuration data for dhcpHA per physical interface. If DHCP Failover is enabled on multiple
+      # sub-interfaces, each sub-interface's DHCP Failover data, although the same, must be configured under each one
+      # in the preconfig YAML file.
+      dhcpHA:
+        dhcpFailoverRole: primary
+        ipAddress: 21.1.1.1
+        ipAddressPort: 647
+        peerIpAddress: 21.1.1.2
+        peerIpAddressPort: 647
+        mclt: 3600
+        split: 128
+        maxResponseDelay: 10
+        maxUnackedUpdates: 10
+        loadBalanceMaxSeconds: 5
