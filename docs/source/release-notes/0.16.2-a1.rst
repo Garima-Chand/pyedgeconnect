@@ -20,6 +20,9 @@
 🐛 Bug Fixes
 ~~~~~~~~~~~~~~
 
+1. **Correct Endpoint for get_all_service_groups**
+
+   - It was returning the wrong API endpoint data.
 
 
 💥 Breaking Changes:
