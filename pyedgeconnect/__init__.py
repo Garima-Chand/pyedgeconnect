@@ -127,59 +127,63 @@ class HttpCommon:
         :return: Requests Response object
         :rtype: requests.Response
         """
-        response_method = (
-            str(response.request)
-            .replace("<PreparedRequest ", "")
-            .replace(">", "")
-        )
-        if response.status_code not in expected_status:
-            self.logger.error(
-                f"{response_method} {api_path} | Received HTTP "
-                f"{response.status_code} | Response text: {response.text}"
+        self.logger.info(
+                "printing mock responses"
             )
-            # return formatted data for the source method
-            # for JSON data, return a dictionary with the details of
-            # the response
-            if return_type == "json":
-                return {
-                    "request": response_method,
-                    "api_path": api_path,
-                    "status_code": response.status_code,
-                    "text": response.text,
-                }
-            elif return_type == "text":
-                return response.text
-            elif return_type == "bool":
-                return False
-            elif return_type == "full_response":
-                return response
+        return response
+        # response_method = (
+        #     str(response.request)
+        #     .replace("<PreparedRequest ", "")
+        #     .replace(">", "")
+        # )
+        # if response.status_code not in expected_status:
+        #     self.logger.error(
+        #         f"{response_method} {api_path} | Received HTTP "
+        #         f"{response.status_code} | Response text: {response.text}"
+        #     )
+        #     # return formatted data for the source method
+        #     # for JSON data, return a dictionary with the details of
+        #     # the response
+        #     if return_type == "json":
+        #         return {
+        #             "request": response_method,
+        #             "api_path": api_path,
+        #             "status_code": response.status_code,
+        #             "text": response.text,
+        #         }
+        #     elif return_type == "text":
+        #         return response.text
+        #     elif return_type == "bool":
+        #         return False
+        #     elif return_type == "full_response":
+        #         return response
 
-        # If Orchestrator set with log_success == True, include response
-        # text in log messages. Default behavior is to omit response
-        # text from log messages for successful API calls.
-        if self.log_success:
-            self.logger.info(
-                f"{response_method} {api_path} | Received HTTP "
-                f"{response.status_code} | Response text: {response.text}"
-            )
-        else:
-            # Log successful call, omit response text in case sensitive
-            # data in response text
-            self.logger.info(
-                f"{response_method} {api_path} | Received HTTP "
-                f"{response.status_code} "
-                "| Response omitted to avoid logging sensitive data"
-            )
+        # # If Orchestrator set with log_success == True, include response
+        # # text in log messages. Default behavior is to omit response
+        # # text from log messages for successful API calls.
+        # if self.log_success:
+        #     self.logger.info(
+        #         f"{response_method} {api_path} | Received HTTP "
+        #         f"{response.status_code} | Response text: {response.text}"
+        #     )
+        # else:
+        #     # Log successful call, omit response text in case sensitive
+        #     # data in response text
+        #     self.logger.info(
+        #         f"{response_method} {api_path} | Received HTTP "
+        #         f"{response.status_code} "
+        #         "| Response omitted to avoid logging sensitive data"
+        #     )
 
-        # return formatted data for the source method
-        if return_type == "json":
-            return response.json()
-        elif return_type == "text":
-            return response.text
-        elif return_type == "bool":
-            return True
-        elif return_type == "full_response":
-            return response
+        # # return formatted data for the source method
+        # if return_type == "json":
+        #     return response.json()
+        # elif return_type == "text":
+        #     return response.text
+        # elif return_type == "bool":
+        #     return True
+        # elif return_type == "full_response":
+        #     return response
 
     # HTTP REQUESTS CALLED BY METHODS
 
