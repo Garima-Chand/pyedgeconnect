@@ -511,11 +511,12 @@ class Orchestrator(HttpCommon):
         # Check if Orchestrator version is 9.3+ if API Key provided
         if api_key != "":
             try:
-                orch_info = self.get_orchestrator_server_brief()
-                release = orch_info["release"]
-                major = int(release.split(".")[0])
-                minor = int(release.split(".")[1])
-                self.orch_version = major + minor / 10
+                # orch_info = self.get_orchestrator_server_brief()
+                # release = orch_info["release"]
+                # major = int(release.split(".")[0])
+                # minor = int(release.split(".")[1])
+                # self.orch_version = major + minor / 10
+                self.orch_version = 9.3
             except Exception as e:
                 print(e)
                 print(
