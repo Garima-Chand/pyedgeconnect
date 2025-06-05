@@ -130,7 +130,16 @@ class HttpCommon:
         self.logger.info(
                 "printing mock responses"
             )
-        return response
+        # return formatted data for the source method
+        if return_type == "json":
+            return response.json()
+        elif return_type == "text":
+            return response.text
+        elif return_type == "bool":
+            return True
+        elif return_type == "full_response":
+            return response
+        
         # response_method = (
         #     str(response.request)
         #     .replace("<PreparedRequest ", "")
