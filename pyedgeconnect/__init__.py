@@ -130,15 +130,19 @@ class HttpCommon:
         self.logger.info(
                 "printing mock responses"
             )
-        # return formatted data for the source method
-        if return_type == "json":
-            return response.json()
-        elif return_type == "text":
-            return response.text
-        elif return_type == "bool":
-            return True
-        elif return_type == "full_response":
-            return response
+        self.logger.info(
+                f"Response text: {response}"
+            )
+        try:
+            data = response.json()
+            print("JSON parsed successfully.")
+            return data
+        except ValueError:
+            print("Response is not valid JSON.")
+            if return_type == "bool":
+                return True
+            else:
+                retrun response
         
         # response_method = (
         #     str(response.request)
