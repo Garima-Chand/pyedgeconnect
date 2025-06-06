@@ -142,7 +142,7 @@ class HttpCommon:
             if return_type == "bool":
                 return True
             else:
-                retrun response
+                return response
         
         # response_method = (
         #     str(response.request)
