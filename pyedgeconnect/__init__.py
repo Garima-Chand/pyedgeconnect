@@ -109,7 +109,7 @@ class HttpCommon:
         api_path: str,
         response: requests.models.Response,
         expected_status: list,
-        return_type: str,
+        return_type: str
     ):
         """Handle response from API call
 
@@ -127,76 +127,79 @@ class HttpCommon:
         :return: Requests Response object
         :rtype: requests.Response
         """
-        self.logger.info(
-                "printing mock responses"
+        url_string = self.url_prefix.split('/')
+        url_string = url_string[2]
+        if url_string == '10.180.244.7:10448':
+            self.logger.info(
+                    "printing mock responses"
+                )
+            self.logger.info(
+                    f"Response text: {response}"
+                )
+            try:
+                data = response.json()
+                print("JSON parsed successfully.")
+                return data
+            except ValueError:
+                print("Response is not valid JSON.")
+                if return_type == "bool":
+                    return True
+                else:
+                    return response
+        else:
+            response_method = (
+                str(response.request)
+                .replace("<PreparedRequest ", "")
+                .replace(">", "")
             )
-        self.logger.info(
-                f"Response text: {response}"
-            )
-        try:
-            data = response.json()
-            print("JSON parsed successfully.")
-            return data
-        except ValueError:
-            print("Response is not valid JSON.")
-            if return_type == "bool":
-                return True
+            if response.status_code not in expected_status:
+                self.logger.error(
+                    f"{response_method} {api_path} | Received HTTP "
+                    f"{response.status_code} | Response text: {response.text}"
+                )
+                # return formatted data for the source method
+                # for JSON data, return a dictionary with the details of
+                # the response
+                if return_type == "json":
+                    return {
+                        "request": response_method,
+                        "api_path": api_path,
+                        "status_code": response.status_code,
+                        "text": response.text,
+                    }
+                elif return_type == "text":
+                    return response.text
+                elif return_type == "bool":
+                    return False
+                elif return_type == "full_response":
+                    return response
+    
+            # If Orchestrator set with log_success == True, include response
+            # text in log messages. Default behavior is to omit response
+            # text from log messages for successful API calls.
+            if self.log_success:
+                self.logger.info(
+                    f"{response_method} {api_path} | Received HTTP "
+                    f"{response.status_code} | Response text: {response.text}"
+                )
             else:
+                # Log successful call, omit response text in case sensitive
+                # data in response text
+                self.logger.info(
+                    f"{response_method} {api_path} | Received HTTP "
+                    f"{response.status_code} "
+                    "| Response omitted to avoid logging sensitive data"
+                )
+    
+            # return formatted data for the source method
+            if return_type == "json":
+                return response.json()
+            elif return_type == "text":
+                return response.text
+            elif return_type == "bool":
+                return True
+            elif return_type == "full_response":
                 return response
-        
-        # response_method = (
-        #     str(response.request)
-        #     .replace("<PreparedRequest ", "")
-        #     .replace(">", "")
-        # )
-        # if response.status_code not in expected_status:
-        #     self.logger.error(
-        #         f"{response_method} {api_path} | Received HTTP "
-        #         f"{response.status_code} | Response text: {response.text}"
-        #     )
-        #     # return formatted data for the source method
-        #     # for JSON data, return a dictionary with the details of
-        #     # the response
-        #     if return_type == "json":
-        #         return {
-        #             "request": response_method,
-        #             "api_path": api_path,
-        #             "status_code": response.status_code,
-        #             "text": response.text,
-        #         }
-        #     elif return_type == "text":
-        #         return response.text
-        #     elif return_type == "bool":
-        #         return False
-        #     elif return_type == "full_response":
-        #         return response
-
-        # # If Orchestrator set with log_success == True, include response
-        # # text in log messages. Default behavior is to omit response
-        # # text from log messages for successful API calls.
-        # if self.log_success:
-        #     self.logger.info(
-        #         f"{response_method} {api_path} | Received HTTP "
-        #         f"{response.status_code} | Response text: {response.text}"
-        #     )
-        # else:
-        #     # Log successful call, omit response text in case sensitive
-        #     # data in response text
-        #     self.logger.info(
-        #         f"{response_method} {api_path} | Received HTTP "
-        #         f"{response.status_code} "
-        #         "| Response omitted to avoid logging sensitive data"
-        #     )
-
-        # # return formatted data for the source method
-        # if return_type == "json":
-        #     return response.json()
-        # elif return_type == "text":
-        #     return response.text
-        # elif return_type == "bool":
-        #     return True
-        # elif return_type == "full_response":
-        #     return response
 
     # HTTP REQUESTS CALLED BY METHODS
 
@@ -528,12 +531,16 @@ class Orchestrator(HttpCommon):
         # Check if Orchestrator version is 9.3+ if API Key provided
         if api_key != "":
             try:
-                # orch_info = self.get_orchestrator_server_brief()
-                # release = orch_info["release"]
-                # major = int(release.split(".")[0])
-                # minor = int(release.split(".")[1])
-                # self.orch_version = major + minor / 10
-                self.orch_version = 9.3
+                orch_info = self.get_orchestrator_server_brief()
+                release = orch_info["release"]
+                major = int(release.split(".")[0])
+                minor = int(release.split(".")[1])
+                self.orch_version = major + minor / 10
+                print(
+                    """
+                    Attempt to retrieve Orchestrator version passes
+                    """
+                )
             except Exception as e:
                 print(e)
                 print(
