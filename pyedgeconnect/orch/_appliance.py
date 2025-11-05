@@ -820,6 +820,7 @@ def appliance_post_api(
     ne_pk: str,
     url: str,
     data,
+    return_type = "bool"
 ) -> dict:
     """Pass along a POST API call to an appliance
 
@@ -854,7 +855,7 @@ def appliance_post_api(
         path,
         data=data,
         expected_status=[200, 204],
-        return_type="bool",
+        return_type=return_type,
     )
 
 
